@@ -54,7 +54,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
       typeof str === 'string' && str.split('.').length === 3 && str.length > 20;
 
     try {
-      const response = await axios.post('http://localhost:8080/auth/login', {
+      const response = await axios.post('${API_BASE}/auth/login', {
         email,
         password,
       });
@@ -75,7 +75,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
 
       let userId = null;
       try {
-        const uRes = await axios.get('http://localhost:8080/auth/user', {
+        const uRes = await axios.get('${API_BASE}/auth/user', {
           headers: { Authorization: `Bearer ${token}` },
         });
         userId =
@@ -102,7 +102,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
       if (userId) {
         try {
           const farmRes = await axios.get(
-            `http://localhost:8080/api/farms/user/${encodeURIComponent(userId)}`,
+            `${API_BASE}/api/farms/user/${encodeURIComponent(userId)}`,
             { headers: { Authorization: `Bearer ${token}` } }
           );
           const farmData = farmRes.data;
@@ -147,7 +147,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8080/auth/forgot-password', {
+      const response = await axios.post('${API_BASE}/auth/forgot-password', {
         email: forgotEmail,
       });
       setForgotMessage(response.data);
@@ -460,4 +460,6 @@ Login.propTypes = {
 };
 
 export default Login;
+
+
 

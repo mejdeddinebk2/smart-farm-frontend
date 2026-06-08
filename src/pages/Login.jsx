@@ -54,7 +54,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
       typeof str === 'string' && str.split('.').length === 3 && str.length > 20;
 
     try {
-      const response = await axios.post('${API_BASE}/auth/login', {
+      const response = await axios.post(`${API_BASE}/auth/login`, {
         email,
         password,
       });
@@ -75,7 +75,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
 
       let userId = null;
       try {
-        const uRes = await axios.get('${API_BASE}/auth/user', {
+        const uRes = await axios.get(`${API_BASE}/auth/user`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         userId =
@@ -107,7 +107,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
           );
           const farmData = farmRes.data;
           farmId = farmData?.id || farmData?.farmId || farmData?.FarmId || null;
-          if (farmId) localStorage.setItem('farmId', farmId);
+          if (farmId) localStorage.setItem(`farmId', farmId);
         } catch (farmErr) {
           if (farmErr.response?.status !== 404) {
             console.warn('Farm lookup error:', farmErr.response?.data || farmErr.message);
@@ -147,7 +147,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
     }
 
     try {
-      const response = await axios.post('${API_BASE}/auth/forgot-password', {
+      const response = await axios.post(`${API_BASE}/auth/forgot-password`, {
         email: forgotEmail,
       });
       setForgotMessage(response.data);
@@ -460,6 +460,7 @@ Login.propTypes = {
 };
 
 export default Login;
+
 
 
 

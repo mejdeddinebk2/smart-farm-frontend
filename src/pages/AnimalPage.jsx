@@ -1448,3 +1448,4 @@ const MyAnimals = () => {
 };
 
 export default MyAnimals;
+

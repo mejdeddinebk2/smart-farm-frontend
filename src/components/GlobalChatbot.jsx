@@ -25,7 +25,6 @@ const groq = new Groq({
 });
 
 const GROQ_MODEL = 'llama-3.1-8b-instant';
-const API_BASE = API_BASE;
 const NOTIFICATION_API = `${API_BASE}/api/notifications`;
 
 /* ═══════════════════ HELPERS ═══════════════════ */
@@ -976,3 +975,5 @@ IMPORTANT RULES:
 };
 
 export default GlobalChatbot;
+
+

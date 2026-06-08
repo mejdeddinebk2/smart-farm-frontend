@@ -21,7 +21,6 @@ import { HiSparkles } from 'react-icons/hi';
    Config & Helpers
    ═══════════════════════════════════════════ */
 
-const API_BASE = import.meta.env.VITE_API_URL || API_BASE;
 
 /*
  * ✅ FIX: Notification endpoints are GLOBAL (/api/notifications),
@@ -1353,3 +1352,6 @@ const Notifications = () => {
 };
 
 export default Notifications;
+
+
+

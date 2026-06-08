@@ -765,3 +765,4 @@ const MyPlantes = () => {
 };
 
 export default MyPlantes;
+

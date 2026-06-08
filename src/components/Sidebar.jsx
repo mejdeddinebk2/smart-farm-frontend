@@ -159,7 +159,6 @@ const menuItems = [
 ];
 
 /* ═══════════════════ HELPERS ═══════════════════ */
-const API_BASE = API_BASE;
 
 const formatRelativeTime = (ts) => {
   if (!ts) return '';
@@ -1110,3 +1109,5 @@ export default function Sidebar({ setIsLoggedIn, username, email, isAdmin }) {
     </div>
   );
 }
+
+

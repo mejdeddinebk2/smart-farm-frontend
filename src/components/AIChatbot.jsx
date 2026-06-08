@@ -36,7 +36,6 @@ const groq = new Groq({
 const GROQ_MODEL = 'llama-3.1-8b-instant';
 
 /* ═══════════════════ API CONFIG ═══════════════════ */
-const API_BASE = API_BASE;
 // ✅ FIX: Notifications are GLOBAL, NOT per-farm
 const NOTIFICATION_API = `${API_BASE}/api/notifications`;
 
@@ -1015,3 +1014,5 @@ CRITICAL RULES:
 };
 
 export default AIChatbot;
+
+

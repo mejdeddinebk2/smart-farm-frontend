@@ -53,3 +53,4 @@ export const logout = () => {
 export const getCurrentUser = () => {
   return localStorage.getItem('token');
 };
+

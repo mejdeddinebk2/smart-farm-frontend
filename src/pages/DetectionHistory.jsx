@@ -12,7 +12,6 @@ import {
 
 const STORAGE_KEY = 'smartfarm_detection_history';
 const MAX_HISTORY  = 50;
-const API_BASE     = API_BASE;
 
 /* ─── localStorage helpers ─── */
 export function loadHistory() {
@@ -404,3 +403,5 @@ const DetectionHistoryPage = () => {
 };
 
 export default DetectionHistoryPage;
+
+

@@ -1558,3 +1558,4 @@ export default function AIAnimalDetection() {
     </div>
   );
 }
+

@@ -33,7 +33,7 @@ import GlobalChatbot from './components/GlobalChatbot';
 
 // ✅ NEW IMPORTS - Settings, Profile, Help
 import Settings from './pages/Settings';
-import Profile from './pages/profile';
+import Profile from './pages/Profile';
 import Help from './pages/Help';
 import DetectionHistoryPage from './pages/DetectionHistory';
 

@@ -107,7 +107,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
           );
           const farmData = farmRes.data;
           farmId = farmData?.id || farmData?.farmId || farmData?.FarmId || null;
-          if (farmId) localStorage.setItem(`farmId', farmId);
+          if (farmId) localStorage.setItem('farmId', farmId);
         } catch (farmErr) {
           if (farmErr.response?.status !== 404) {
             console.warn('Farm lookup error:', farmErr.response?.data || farmErr.message);
@@ -147,7 +147,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
     }
 
     try {
-      const response = await axios.post(`${API_BASE}/auth/forgot-password`, {
+        const response = await axios.post(`/auth/forgot-password`, {
         email: forgotEmail,
       });
       setForgotMessage(response.data);
@@ -164,7 +164,7 @@ const Login = ({ setIsLoggedIn, fetchUserDetails }) => {
       {/* Background Image with Overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center scale-105"
-        style={{ backgroundImage: `url(${loginImage})` }}
+          style={{ backgroundImage: `url(${loginImage})` }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-green-900/50" />
       </div>
@@ -460,6 +460,7 @@ Login.propTypes = {
 };
 
 export default Login;
+
 
 
 

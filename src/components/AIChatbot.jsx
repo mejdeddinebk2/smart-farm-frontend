@@ -27,7 +27,7 @@ import Groq from 'groq-sdk';
       - 8192 token context window
    ═══════════════════════════════════════════════════════════ */
 const groq = new Groq({
-  apiKey: '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',
+  apiKey: 'YOUR_GROQ_API_KEY_HERE',
   dangerouslyAllowBrowser: true,
 });
 

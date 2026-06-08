@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { notifyFarmChange } from '../utils/notify';
 import axios from 'axios';

@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -511,7 +512,7 @@ export default function Products() {
 
   const showToast = useCallback((msg, type = 'info') => setToast({ message: msg, type, key: Date.now() }), []);
 
-  const BACKEND_URL = 'http://localhost:8080';
+  const BACKEND_URL = API_BASE;
 
   const generate = useCallback((count = 12) => {
     setLoading(true);

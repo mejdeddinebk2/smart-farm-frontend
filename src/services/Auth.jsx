@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 const API_URL = 'http://localhost:8080/auth';
 
 export const register = async (username, email, password) => {

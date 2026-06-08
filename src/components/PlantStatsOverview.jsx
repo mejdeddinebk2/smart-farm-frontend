@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 /**
  * PlantStatsOverview.jsx
  * Statistics dashboard for plants.
@@ -447,3 +448,4 @@ export {
   upcomingHarvestsSeries,
   growthScatterData
 };
+

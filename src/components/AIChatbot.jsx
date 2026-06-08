@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -27,7 +28,7 @@ import Groq from 'groq-sdk';
       - 8192 token context window
    ═══════════════════════════════════════════════════════════ */
 const groq = new Groq({
-  apiKey: 'YOUR_GROQ_API_KEY_HERE',
+  apiKey: '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',
   dangerouslyAllowBrowser: true,
 });
 
@@ -35,7 +36,7 @@ const groq = new Groq({
 const GROQ_MODEL = 'llama-3.1-8b-instant';
 
 /* ═══════════════════ API CONFIG ═══════════════════ */
-const API_BASE = 'http://localhost:8080';
+const API_BASE = API_BASE;
 // ✅ FIX: Notifications are GLOBAL, NOT per-farm
 const NOTIFICATION_API = `${API_BASE}/api/notifications`;
 

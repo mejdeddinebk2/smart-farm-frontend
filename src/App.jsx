@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import WateringPage from './pages/WateringPage';

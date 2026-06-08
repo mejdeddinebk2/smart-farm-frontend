@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';

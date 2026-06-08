@@ -1,10 +1,11 @@
+import API_BASE from '../config';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import imageLogin from '../assets/images/farm1.jpg';
 import { notifyFarmChange } from '../utils/notify';
 
-const API_BASE = 'http://localhost:8080';
+const API_BASE = API_BASE;
 
 // Helper to decode JWT and extract possible user identifier
 const extractUserIdFromToken = (token) => {
@@ -181,3 +182,4 @@ const CreateFarm = ({ setIsLoggedIn }) => {
 };
 
 export default CreateFarm;
+

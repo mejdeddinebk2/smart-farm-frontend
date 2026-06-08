@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 // DetectionHistory.jsx — persistent detection history (localStorage + backend sync)
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +12,7 @@ import {
 
 const STORAGE_KEY = 'smartfarm_detection_history';
 const MAX_HISTORY  = 50;
-const API_BASE     = 'http://localhost:8080';
+const API_BASE     = API_BASE;
 
 /* ─── localStorage helpers ─── */
 export function loadHistory() {

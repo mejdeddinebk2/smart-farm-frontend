@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -158,7 +159,7 @@ const menuItems = [
 ];
 
 /* ═══════════════════ HELPERS ═══════════════════ */
-const API_BASE = 'http://localhost:8080';
+const API_BASE = API_BASE;
 
 const formatRelativeTime = (ts) => {
   if (!ts) return '';

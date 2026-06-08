@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import { useEffect, useState, useCallback, useMemo, useRef, forwardRef } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +21,7 @@ import { HiSparkles } from 'react-icons/hi';
    Config & Helpers
    ═══════════════════════════════════════════ */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = import.meta.env.VITE_API_URL || API_BASE;
 
 /*
  * ✅ FIX: Notification endpoints are GLOBAL (/api/notifications),

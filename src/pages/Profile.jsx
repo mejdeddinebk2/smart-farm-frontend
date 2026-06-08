@@ -1,3 +1,4 @@
+import API_BASE from '../config';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -16,7 +17,7 @@ import { FaCow } from "react-icons/fa6";
 /* ═══════════════════════════════════════════
    API CONFIG — change to match your backend
    ═══════════════════════════════════════════ */
-const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API = import.meta.env.VITE_API_URL || API_BASE;
 
 /* ── get token from wherever your auth stores it ── */
 function getToken() {

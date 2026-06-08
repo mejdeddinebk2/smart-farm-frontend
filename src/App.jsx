@@ -35,6 +35,8 @@ import GlobalChatbot from './components/GlobalChatbot';
 import Settings from './pages/Settings';
 import Profile from './pages/profile';
 import Help from './pages/Help';
+import DetectionHistoryPage from './pages/DetectionHistory';
+
 
 function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserDetails }) {
   const location = useLocation();
@@ -117,12 +119,14 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/signout" element={<SignOut setIsLoggedIn={setIsLoggedIn} />} />
           <Route path="/register" element={<Register setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />} />
+
           
           {/* ══════════════════════════════════════════════════════════════
               FARM MANAGEMENT ROUTES
               ══════════════════════════════════════════════════════════════ */}
           <Route path="/watering" element={<WateringPage />} />
           <Route path="/feeding" element={<FeedingPage />} />
+          
           <Route
             path="/create-farm"
             element={isLoggedIn ? <CreateFarm setIsLoggedIn={setIsLoggedIn} /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
@@ -172,6 +176,10 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
             element={isLoggedIn ? <AIDetectionHub /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
           />
           <Route
+            path="/detection-history"
+            element={isLoggedIn ? <DetectionHistoryPage /> : <Login setIsLoggedIn={setIsLoggedIn} fetchUserDetails={fetchUserDetails} />}
+          />
+          <Route
             path="/ai-farms"
             element={<Navigate to="/ai-detection" replace />}
           />
@@ -198,6 +206,7 @@ function AppLayout({ isLoggedIn, userDetails, isAdmin, setIsLoggedIn, fetchUserD
       {/* Global AI Chatbot - appears on all pages when logged in */}
       {isLoggedIn && <GlobalChatbot />}
     </div>
+    
   );
 }
 
@@ -254,6 +263,10 @@ function App() {
       <ToastContainer />
     </Router>
   );
+  useEffect(() => {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark') document.documentElement.classList.add('dark');
+}, []);
 }
 
 export default App;

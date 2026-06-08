@@ -23,7 +23,8 @@ import {
   FaChevronRight,
   FaLeaf,
   FaSeedling,
-  FaShieldAlt
+  FaShieldAlt,
+  FaPaw,
 } from 'react-icons/fa';
 import {
   IoLogOut,
@@ -103,7 +104,7 @@ const menuItems = [
       },
     ],
   },
-  {
+{
     section: 'Intelligence',
     items: [
       {
@@ -113,6 +114,26 @@ const menuItems = [
         description: 'Smart diagnostics',
         isNew: true,
         gradient: 'from-purple-500 to-indigo-500',
+        submenu: [
+          {
+            icon: <FaPaw size={16} />,
+            label: 'Animal Detection',
+            path: '/ai-animal-detection',
+            description: 'Detect animal diseases',
+          },
+          {
+            icon: <FaLeaf size={16} />,
+            label: 'Plant Detection',
+            path: '/ai-plant-detection',
+            description: 'Detect plant diseases',
+          },
+          {
+            icon: <FiClock size={16} />,
+            label: 'Detection History',
+            path: '/detection-history',
+            description: 'Past AI scans',
+          },
+        ],
       },
       {
         icon: <MdOutlineTipsAndUpdates size={22} />,
@@ -195,7 +216,7 @@ export default function Sidebar({ setIsLoggedIn, username, email, isAdmin }) {
       const res = await axios.get(`${API_BASE}/api/notifications`, { headers });
       const notifications = Array.isArray(res.data) ? res.data : [];
       const unread = notifications.filter((n) => !n.read).length;
-      setNotificationCount(unread || notifications.length);
+      setNotificationCount(unread);
     } catch {
       // silent
     }

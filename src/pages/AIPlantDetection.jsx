@@ -16,6 +16,7 @@ import {
 import { Doughnut, Bar } from 'react-chartjs-2';
 import 'chart.js/auto';
 import AIChatbot from '../components/AIChatbot';
+import { saveDetection } from './DetectionHistory';
 
 /* ═══════════════════ CONSTANTS ═══════════════════ */
 const PALETTE = [
@@ -281,24 +282,25 @@ export default function AIPlantDetection() {
       setHighlightId(null);
       setResultTab('summary');
 
-      // Push to history
+      // Push to history (in-component + localStorage + backend)
       const topPred = [...preds].sort((a, b) => b.confidence - a.confidence)[0];
-      setDetectionHistory((prev) =>
-        [
-          {
-            id: Date.now(),
-            timestamp: new Date().toLocaleTimeString(),
-            count: preds.length,
-            filename: selectedFile.name || 'capture.jpg',
-            topClass: topPred?.class || '—',
-            topConf: topPred?.confidence || 0,
-            model: modelType,
-            elapsed,
-          },
-          ...prev,
-        ].slice(0, 15)
-      );
-
+      const historyEntry = {
+        id:          Date.now(),
+        timestamp:   new Date().toLocaleString(),
+        count:       preds.length,
+        filename:    selectedFile.name || 'capture.jpg',
+        topClass:    topPred?.class || '—',
+        topConf:     topPred?.confidence || 0,
+        elapsed,
+        modelType:   'plant',   // ← change to 'plant' in AIPlantDetection.jsx
+        predictions: preds.map((p) => ({
+          class:      p.class,
+          confidence: p.confidence,
+        })),
+      };
+      setDetectionHistory((prev) => [historyEntry, ...prev].slice(0, 15));
+      saveDetection(historyEntry); // ← saves to localStorage + backend
+      
       toast.success(`Detected ${preds.length} object(s) with "${modelType}" model in ${elapsed}ms!`);
     } catch (e) {
       console.error(e);

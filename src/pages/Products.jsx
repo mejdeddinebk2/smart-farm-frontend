@@ -511,16 +511,7 @@ export default function Products() {
 
   const showToast = useCallback((msg, type = 'info') => setToast({ message: msg, type, key: Date.now() }), []);
 
-  const AGRI_BASE = 'https://agridata.ec.europa.eu';
-  const AGRI_ENDPOINTS = [
-    '/api/beef', '/api/pigmeat', '/api/eggs-and-poultry', '/api/sheep-and-goat-meat',
-    '/api/milk-and-dairy', '/api/fruit-and-vegetables', '/api/cereals', '/api/rice',
-    '/api/oilseeds-and-protein-crops', '/api/sugar', '/api/olive-oil', '/api/wine',
-    '/api/fertiliser', '/api/cmef-indicators',
-    '/api/fruitAndVegetable/products', '/api/fruitAndVegetable/varieties',
-    '/api/fruitAndVegetable/pricesSupplyChain', '/api/fruitAndVegetable/pricesSupplyChain/productStages',
-    '/api/fruitAndVegetable/pricesSupplyChain/products', '/api/fruitAndVegetable/pricesSupplyChain/varieties'
-  ];
+  const BACKEND_URL = 'http://localhost:8080';
 
   const generate = useCallback((count = 12) => {
     setLoading(true);
@@ -551,50 +542,32 @@ export default function Products() {
     const tryLoad = async () => {
       setLoading(true);
       try {
-        const requests = AGRI_ENDPOINTS.map(ep =>
-          fetch(AGRI_BASE + ep).then(r => ({ ok: r.ok, ep, json: r.ok ? r.json() : null })).catch(() => ({ ok: false, ep }))
-        );
-        const settled = await Promise.all(requests);
-        const successes = [];
-        for (const res of settled) {
-          if (res?.ok && res.json) {
-            try {
-              const data = await res.json;
-              const title = res.ep.replace(/^\/api\//, '').replace(/[-_/]/g, ' ');
-              const sample = Array.isArray(data) ? data[0] : data;
-              let desc = '';
-              if (sample && typeof sample === 'object') {
-                desc = Object.keys(sample).slice(0, 4).map(k => {
-                  const v = sample[k];
-                  return (typeof v === 'number' || (typeof v === 'string' && v.length < 40)) ? `${k}: ${v}` : null;
-                }).filter(Boolean).join(' • ');
-              }
-              successes.push({
-                id: res.ep, name: title.charAt(0).toUpperCase() + title.slice(1),
-                category: 'Agridata sector', price: null,
-                images: Array.from(new Set([resolveImage({ name: title, category: 'Agridata', id: res.ep }), seededImage(res.ep)])),
-                unit: '', description: desc || 'Agricultural data sector.', raw: data,
-                rating: 4, reviews: 0,
-              });
-            } catch {}
-          }
-        }
-        if (successes.length > 0) { setProducts(successes); setLoading(false); return; }
-      } catch {}
-      try {
-        const r = await fetch('/agri-products.json');
+        const token = localStorage.getItem('token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const r = await fetch(`${BACKEND_URL}/api/products`, { headers });
         if (r.ok) {
           const list = await r.json();
           if (Array.isArray(list) && list.length > 0) {
             setProducts(list.map(p => ({
               ...p,
-              images: Array.from(new Set([resolveImage({ name: p.name, category: p.category }), seededImage(p.name)])),
-              rating: p.rating || 4, reviews: p.reviews || 0,
+              price: p.price ?? randBetween(10, 80),
+              images: Array.from(new Set([
+                p.imageUrl || resolveImage({ name: p.name, category: p.category, id: p.id }),
+                seededImage(p.name),
+              ].filter(Boolean))),
+              rating: p.rating || 4,
+              reviews: p.reviews || 0,
+              badge: p.badge || null,
+              description: p.description || `High-quality ${(p.category || 'farm').toLowerCase()} product.`,
             })));
-            setLoading(false); return;
+            setLoading(false);
+            return;
           }
         }
-      } catch {}
+      } catch (err) {
+        console.warn('Backend fetch failed, using seed data:', err);
+      }
+      // Fallback to local seed data when backend is unreachable
       generate(12);
     };
     tryLoad();

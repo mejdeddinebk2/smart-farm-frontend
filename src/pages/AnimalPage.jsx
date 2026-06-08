@@ -8,6 +8,7 @@ import {
   TrendingUp, BarChart3, Info, RefreshCw, Heart, Shield
 } from 'lucide-react';
 import AIChatbot from '../components/AIChatbot';
+import { saveDetection } from './DetectionHistory';
 
 const farmApiBase = 'http://localhost:8080/api/farms';
 const baseAnimalsFallback = 'http://localhost:8080/api/animals';

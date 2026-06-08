@@ -203,9 +203,51 @@ export default function Help() {
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [toast, setToast] = useState(null);
 
+  /* ── Contact form state ── */
+  const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactSent, setContactSent] = useState(false);
+
   const showToast = useCallback((message, type = "info") => {
     setToast({ message, type, key: Date.now() });
   }, []);
+
+  /* ── Contact form submit ── */
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.email || !contactForm.message) {
+      showToast('Please fill in all required fields', 'warning');
+      return;
+    }
+    setContactLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      await fetch('http://localhost:8080/api/support/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(contactForm),
+      });
+      setContactSent(true);
+      setContactForm({ name: '', email: '', subject: '', message: '' });
+      showToast("Message sent! We'll reply within 24h", 'success');
+    } catch {
+      // Fallback: open mailto
+      window.open(
+        `mailto:majdikadida2017@gmail.com?subject=${encodeURIComponent(
+          contactForm.subject || 'Support Request'
+        )}&body=${encodeURIComponent(
+          `Name: ${contactForm.name}\nEmail: ${contactForm.email}\n\n${contactForm.message}`
+        )}`
+      );
+      setContactSent(true);
+      showToast('Opening your email client...', 'info');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   const categories = [
     { id: 'all', name: 'All Topics', icon: <FaBook />, color: 'from-gray-500 to-slate-500' },
@@ -240,7 +282,7 @@ export default function Help() {
       id: 4,
       category: 'animals',
       question: 'How does the automatic feeding system work?',
-      answer: 'The automatic feeding system monitors your animals\' fullness levels and triggers feeding based on your configured schedules. You can customize feeding times, portion sizes, and food types for each animal species. Enable it in Settings > Farm Settings.'
+      answer: "The automatic feeding system monitors your animals' fullness levels and triggers feeding based on your configured schedules. You can customize feeding times, portion sizes, and food types for each animal species. Enable it in Settings > Farm Settings."
     },
     {
       id: 5,
@@ -270,7 +312,7 @@ export default function Help() {
       id: 9,
       category: 'notifications',
       question: 'Why am I not receiving notifications?',
-      answer: 'Check these common issues: 1) Browser notification permissions, 2) Settings > Notifications to ensure alerts are enabled, 3) Email spam folder for email notifications, 4) Phone\'s Do Not Disturb mode for mobile. Contact support if issues persist.'
+      answer: "Check these common issues: 1) Browser notification permissions, 2) Settings > Notifications to ensure alerts are enabled, 3) Email spam folder for email notifications, 4) Phone's Do Not Disturb mode for mobile. Contact support if issues persist."
     },
     {
       id: 10,
@@ -288,7 +330,7 @@ export default function Help() {
       id: 12,
       category: 'account',
       question: 'How do I enable two-factor authentication?',
-      answer: 'Navigate to Settings > Security and toggle "Two-Factor Authentication". You\'ll be guided to set up an authenticator app (like Google Authenticator or Authy) by scanning a QR code. After setup, you\'ll need to enter a verification code when logging in.'
+      answer: "Navigate to Settings > Security and toggle \"Two-Factor Authentication\". You'll be guided to set up an authenticator app (like Google Authenticator or Authy) by scanning a QR code. After setup, you'll need to enter a verification code when logging in."
     }
   ];
 
@@ -319,7 +361,14 @@ export default function Help() {
       <GridBackground />
 
       <AnimatePresence>
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} key={toast.key} />}
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+            key={toast.key}
+          />
+        )}
       </AnimatePresence>
 
       <motion.div
@@ -328,7 +377,7 @@ export default function Help() {
         animate="show"
         className="relative z-10 max-w-[1400px] mx-auto px-6 py-6 space-y-8"
       >
-        {/* Header */}
+        {/* ── Header ── */}
         <motion.div
           variants={fadeUp}
           className="bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 rounded-3xl p-8 md:p-12
@@ -371,7 +420,7 @@ export default function Help() {
           </div>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* ── Quick Actions ── */}
         <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <QuickActionCard
             icon={<FaHeadset className="text-2xl text-white" />}
@@ -411,9 +460,10 @@ export default function Help() {
           />
         </motion.div>
 
-        {/* Main Content */}
+        {/* ── Main Content: Sidebar + FAQ ── */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
+
+          {/* Categories Sidebar */}
           <motion.div variants={fadeUp} className="lg:col-span-1">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-sm p-4 sticky top-6">
               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -442,7 +492,9 @@ export default function Help() {
                     <span className={`ml-auto text-xs font-bold ${
                       activeCategory === category.id ? 'text-white/70' : 'text-gray-400'
                     }`}>
-                      {category.id === 'all' ? faqs.length : faqs.filter(f => f.category === category.id).length}
+                      {category.id === 'all'
+                        ? faqs.length
+                        : faqs.filter(f => f.category === category.id).length}
                     </span>
                   </motion.button>
                 ))}
@@ -455,15 +507,20 @@ export default function Help() {
                   <span className="text-xs font-bold text-amber-700">Pro Tip</span>
                 </div>
                 <p className="text-[11px] text-amber-700 leading-relaxed">
-                  Press <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px] font-mono shadow-sm">Ctrl</kbd> + 
-                  <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px] font-mono shadow-sm ml-1">/</kbd> to quickly access search from anywhere.
+                  Press{' '}
+                  <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px] font-mono shadow-sm">Ctrl</kbd>
+                  {' '}+{' '}
+                  <kbd className="px-1.5 py-0.5 bg-white rounded text-[10px] font-mono shadow-sm">/</kbd>
+                  {' '}to quickly access search from anywhere.
                 </p>
               </div>
             </div>
           </motion.div>
 
-          {/* FAQ Section */}
+          {/* FAQ + Guides */}
           <motion.div variants={fadeUp} className="lg:col-span-3 space-y-6">
+
+            {/* FAQ */}
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-gray-100 shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
@@ -511,7 +568,6 @@ export default function Help() {
               <h2 className="font-bold text-gray-800 text-xl mb-6 flex items-center gap-2">
                 <MdSchool className="text-blue-500" /> Popular Guides
               </h2>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {guides.map((guide, index) => (
                   <GuideCard key={guide.id} guide={guide} index={index} />
@@ -521,19 +577,40 @@ export default function Help() {
           </motion.div>
         </div>
 
-        {/* Contact Section */}
+        {/* ── Contact Section ── */}
         <motion.div
           variants={fadeUp}
-          className="bg-gradient-to-br from-gray-50 to-green-50/30 rounded-3xl p-8 md:p-12 text-center border border-gray-100"
+          className="bg-gradient-to-br from-gray-50 to-green-50/30 rounded-3xl p-8 md:p-12 border border-gray-100"
         >
-          <h2 className="text-2xl font-black text-gray-800 mb-2">Still need help?</h2>
-          <p className="text-gray-500 mb-8">Our support team is available 24/7 to assist you</p>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-black text-gray-800 mb-2">Still need help?</h2>
+            <p className="text-gray-500">Our support team is available 24/7 to assist you</p>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
+          {/* Contact Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-10">
             {[
-              { icon: <FaEnvelope className="text-2xl" />, title: 'Email Support', value: 'support@smartfarm.com', sub: 'Response within 24 hours', color: 'from-blue-500 to-indigo-500' },
-              { icon: <FaPhone className="text-2xl" />, title: 'Phone Support', value: '+216 XX XXX XXX', sub: 'Mon-Fri, 9AM-6PM', color: 'from-green-500 to-emerald-500' },
-              { icon: <FaComments className="text-2xl" />, title: 'Live Chat', value: 'Chat with us now', sub: 'Available 24/7', color: 'from-purple-500 to-violet-500' }
+              {
+                icon: <FaEnvelope className="text-2xl" />,
+                title: 'Email Support',
+                value: 'support@smartfarm.com',
+                sub: 'Response within 24 hours',
+                color: 'from-blue-500 to-indigo-500'
+              },
+              {
+                icon: <FaPhone className="text-2xl" />,
+                title: 'Phone Support',
+                value: '+216 XX XXX XXX',
+                sub: 'Mon-Fri, 9AM-6PM',
+                color: 'from-green-500 to-emerald-500'
+              },
+              {
+                icon: <FaComments className="text-2xl" />,
+                title: 'Live Chat',
+                value: 'Chat with us now',
+                sub: 'Available 24/7',
+                color: 'from-purple-500 to-violet-500'
+              }
             ].map((contact, index) => (
               <motion.div
                 key={contact.title}
@@ -541,7 +618,7 @@ export default function Help() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + index * 0.1 }}
                 whileHover={{ y: -4 }}
-                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+                className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer text-center"
               >
                 <div className={`w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br ${contact.color}
                                 flex items-center justify-center text-white shadow-lg mb-4`}>
@@ -553,16 +630,132 @@ export default function Help() {
               </motion.div>
             ))}
           </div>
+
+          {/* ✅ Working Contact Form */}
+          <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-800 mb-5 flex items-center gap-2 text-lg">
+              <FaEnvelope className="text-green-500" /> Send us a message
+            </h3>
+
+            {contactSent ? (
+              <div className="text-center py-10">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <FaCheckCircle className="text-green-500 text-5xl mx-auto mb-4" />
+                </motion.div>
+                <p className="font-bold text-gray-800 text-lg">Message sent!</p>
+                <p className="text-sm text-gray-400 mt-1">We'll get back to you within 24 hours.</p>
+                <button
+                  onClick={() => setContactSent(false)}
+                  className="mt-5 px-6 py-2.5 bg-green-50 text-green-600 rounded-xl text-sm
+                             font-semibold hover:bg-green-100 transition"
+                >
+                  Send another message
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
+                      Name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300
+                                 transition-all bg-gray-50 focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
+                      Email <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm(p => ({ ...p, email: e.target.value }))}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                                 focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300
+                                 transition-all bg-gray-50 focus:bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1.5 block">Subject</label>
+                  <input
+                    type="text"
+                    value={contactForm.subject}
+                    onChange={(e) => setContactForm(p => ({ ...p, subject: e.target.value }))}
+                    placeholder="What's this about?"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                               focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300
+                               transition-all bg-gray-50 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 mb-1.5 block">
+                    Message <span className="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    value={contactForm.message}
+                    onChange={(e) => setContactForm(p => ({ ...p, message: e.target.value }))}
+                    rows={5}
+                    placeholder="Describe your issue or question in detail…"
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                               focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300
+                               transition-all bg-gray-50 focus:bg-white resize-none"
+                  />
+                </div>
+
+                <motion.button
+                  type="submit"
+                  disabled={contactLoading}
+                  whileHover={{ scale: contactLoading ? 1 : 1.02 }}
+                  whileTap={{ scale: contactLoading ? 1 : 0.98 }}
+                  className="w-full py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white
+                             font-semibold rounded-xl hover:from-green-600 hover:to-emerald-700
+                             transition-all shadow-md shadow-green-200/50 disabled:opacity-60
+                             flex items-center justify-center gap-2"
+                >
+                  {contactLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending…
+                    </>
+                  ) : (
+                    <>
+                      <FaEnvelope size={14} /> Send Message
+                    </>
+                  )}
+                </motion.button>
+
+                <p className="text-[11px] text-gray-400 text-center">
+                  If our backend is unavailable, your default email client will open automatically.
+                </p>
+              </form>
+            )}
+          </div>
         </motion.div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         <motion.div variants={fadeUp} className="text-center py-4">
           <p className="text-xs text-gray-400 flex items-center justify-center gap-2">
             <FaHeart className="text-red-400" />
             Smart Farm Help Center • Built with care for our farmers
           </p>
         </motion.div>
+
       </motion.div>
     </div>
   );
-} 
+}

@@ -402,7 +402,16 @@ export default function Settings() {
     "User";
   const userRole = user?.role || "USER";
   const memberSince = user?.createdAt || user?.created_at || farm?.createdAt || "";
-
+useEffect(() => {
+  const root = document.documentElement;
+  if (settings.theme === 'dark') {
+    root.classList.add('dark');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    root.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }
+}, [settings.theme]);
   /* ═══════════════════════════════════
      HANDLERS
      ═══════════════════════════════════ */

@@ -1,46 +1,29 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiMessageCircle, FiX, FiSend, FiMic, FiMicOff,
   FiVolume2, FiVolumeX, FiRefreshCw, FiMinimize2,
   FiMaximize2, FiUser, FiCpu, FiChevronDown,
   FiZap, FiDatabase, FiActivity, FiClock,
-  FiTrash2, FiCopy, FiCheck, FiWifi
+  FiTrash2, FiCopy, FiCheck, FiWifi, FiNavigation
 } from 'react-icons/fi';
 import {
   FaLeaf, FaPaw, FaBell, FaShieldAlt, FaHeartbeat,
   FaSeedling, FaTint, FaDrumstickBite, FaRobot
 } from 'react-icons/fa';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Groq from 'groq-sdk';
 
 /* ═══════════════════════════════════════════════════════════
-   ✅ GROQ CLIENT — Using a REAL chat model
-   
-   ❌ "meta-llama/llama-prompt-guard-2-86m" is a SECURITY
-      model for detecting prompt injections. It only outputs
-      "safe" or "unsafe" — it CANNOT have conversations.
-   
-   ❌ "llama3-8b-8192" has been DECOMMISSIONED by Groq.
-   
-   ✅ "llama-3.1-8b-instant" is the correct replacement:
-      - Fast inference (perfect for chat)
-      - Full conversation capability
-      - Cost-effective
-      - 8192 token context window
+   GROQ CLIENT
    ═══════════════════════════════════════════════════════════ */
 const groq = new Groq({
-  apiKey: 'YOUR_GROQ_API_KEY_HERE',
+  apiKey: import.meta.env.VITE_GROQ_API_KEY || 'YOUR_GROQ_API_KEY_HERE',
   dangerouslyAllowBrowser: true,
 });
 
-// ✅ Correct chat model
 const GROQ_MODEL = 'llama-3.1-8b-instant';
-
-/* ═══════════════════ NOTIFICATION API ═══════════════════ */
-// ✅ FIX: Notifications are GLOBAL (/api/notifications),
-//    NOT per-farm (/api/farms/{id}/notifications)
 const API_BASE = 'http://localhost:8080';
 const NOTIFICATION_API = `${API_BASE}/api/notifications`;
 
@@ -59,6 +42,75 @@ const formatRelativeTime = (ts) => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
+/* ═══════════════════ NAVIGATION MAP ═══════════════════ */
+const NAVIGATION_MAP = {
+  // Dashboard
+  dashboard: '/dashboard',
+  home: '/dashboard',
+  overview: '/dashboard',
+  stats: '/dashboard',
+
+  // Animals
+  animal: '/my-animals',
+  animals: '/my-animals',
+  livestock: '/my-animals',
+  pets: '/my-animals',
+
+  // Plants
+  plant: '/my-plants',
+  plants: '/my-plants',
+  crops: '/my-plants',
+  vegetation: '/my-plants',
+
+  // Feeding
+  feed: '/feeding',
+  feeding: '/feeding',
+  food: '/feeding',
+  'food page': '/feeding',
+  'feed page': '/feeding',
+  'feeding page': '/feeding',
+
+  // Watering
+  water: '/watering',
+  watering: '/watering',
+  irrigation: '/watering',
+  'water page': '/watering',
+
+  // Products
+  product: '/products',
+  products: '/products',
+  store: '/products',
+  shop: '/products',
+
+  // Notifications
+  notification: '/notifications',
+  notifications: '/notifications',
+  alerts: '/notifications',
+
+  // Care tips
+  'care tip': '/care-tips',
+  'care tips': '/care-tips',
+  tips: '/care-tips',
+  advice: '/care-tips',
+
+  // AI Detection
+  'ai detection': '/ai-detection',
+  detection: '/ai-detection',
+  'animal detection': '/ai-animal-detection',
+  'plant detection': '/ai-plant-detection',
+  'detect animal': '/ai-animal-detection',
+  'detect plant': '/ai-plant-detection',
+
+  // Settings / Profile / Help
+  settings: '/settings',
+  profile: '/profile',
+  help: '/help',
+  support: '/help',
+
+  // Farm
+  farm: '/farm',
+};
+
 /* ═══════════════════ PAGE CONTEXT MAP ═══════════════════ */
 const PAGE_CONTEXT = {
   '/dashboard': { label: 'Dashboard', emoji: '📊', color: 'green' },
@@ -72,17 +124,63 @@ const PAGE_CONTEXT = {
   '/ai-detection': { label: 'AI Detection', emoji: '🤖', color: 'teal' },
   '/ai-plant-detection': { label: 'Plant AI', emoji: '🌱', color: 'green' },
   '/ai-animal-detection': { label: 'Animal AI', emoji: '🐄', color: 'blue' },
+  '/settings': { label: 'Settings', emoji: '⚙️', color: 'gray' },
+  '/profile': { label: 'Profile', emoji: '👤', color: 'blue' },
+  '/help': { label: 'Help', emoji: '❓', color: 'purple' },
+  '/farm': { label: 'Farm', emoji: '🏡', color: 'green' },
 };
 
 /* ═══════════════════ QUICK PROMPTS ═══════════════════ */
 const QUICK_PROMPTS = [
-  { label: '🐾 Count Animals', prompt: 'How many animals do I have?' },
-  { label: '🌿 Count Plants', prompt: 'How many plants do I have?' },
+  { label: '🐾 My Animals', prompt: 'How many animals do I have and what are their names?' },
+  { label: '🌿 My Plants', prompt: 'How many plants do I have?' },
   { label: '📊 Farm Status', prompt: "What's my complete farm status?" },
-  { label: '🔔 Alerts', prompt: 'Show me my alerts and notifications' },
-  { label: '🍽️ Resources', prompt: 'What are my food and water levels?' },
-  { label: '🏥 Health', prompt: 'How is the health of my animals and plants?' },
+  { label: '🔔 Alerts', prompt: 'Show me my active alerts' },
+  { label: '🍽️ Go to Feeding', prompt: 'Take me to the feeding page' },
+  { label: '🏥 Health Report', prompt: 'Give me a full health report of my farm' },
 ];
+
+/* ═══════════════════════════════════════════════════════════
+   DETECT NAVIGATION INTENT
+   Returns the target route if the message is a navigation request, else null
+   ═══════════════════════════════════════════════════════════ */
+function detectNavigationIntent(message) {
+  const lower = message.toLowerCase();
+
+  // Detect "go to X", "take me to X", "open X", "navigate to X", "show me X page"
+  const navPhrases = [
+    /go\s+to\s+(?:the\s+)?(.+?)(?:\s+page)?$/i,
+    /take\s+me\s+to\s+(?:the\s+)?(.+?)(?:\s+page)?$/i,
+    /open\s+(?:the\s+)?(.+?)(?:\s+page)?$/i,
+    /navigate\s+to\s+(?:the\s+)?(.+?)(?:\s+page)?$/i,
+    /show\s+me\s+(?:the\s+)?(.+?)\s+page$/i,
+    /i\s+want\s+to\s+(?:go\s+to\s+)?(?:the\s+)?(.+?)(?:\s+page)?$/i,
+  ];
+
+  for (const pattern of navPhrases) {
+    const match = lower.match(pattern);
+    if (match) {
+      const keyword = match[1].trim();
+      // Direct lookup
+      if (NAVIGATION_MAP[keyword]) return { route: NAVIGATION_MAP[keyword], label: keyword };
+      // Partial match
+      for (const [key, route] of Object.entries(NAVIGATION_MAP)) {
+        if (keyword.includes(key) || key.includes(keyword)) {
+          return { route, label: key };
+        }
+      }
+    }
+  }
+
+  // Direct keyword-only messages like "feeding", "feed me", "watering"
+  for (const [key, route] of Object.entries(NAVIGATION_MAP)) {
+    if (lower === key || lower === `${key} page`) {
+      return { route, label: key };
+    }
+  }
+
+  return null;
+}
 
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -93,7 +191,7 @@ const GlobalChatbot = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "🌟 Hello! I'm your AI Farm Assistant with **REAL-TIME** access to all your farm data.\n\nI can tell you exactly:\n• 🐾 How many animals & plants you have\n• 🏥 Their health status\n• 🍽️ Food & water levels\n• 🔔 Active alerts\n\nTry asking: **\"What's my farm status?\"**",
+      text: "🌟 Hey there! I'm **Farmy**, your AI farm assistant!\n\nI have **real-time** access to your farm data and I can:\n• 🐾 Tell you about your animals & plants\n• 🏥 Check health status\n• 🍽️ Check food & water levels\n• 🔔 Show your alerts\n• 🧭 **Navigate** you anywhere — just say *\"go to feeding page\"*!\n\nWhat can I help you with today? 🌱",
       isBot: true,
       timestamp: new Date(),
     },
@@ -102,7 +200,7 @@ const GlobalChatbot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [farmData, setFarmData] = useState({});
   const [lastDataFetch, setLastDataFetch] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -113,8 +211,9 @@ const GlobalChatbot = () => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const recognitionRef = useRef(null);
-  const speechSynthesis = window.speechSynthesis;
+  const speechSynthRef = window.speechSynthesis;
   const location = useLocation();
+  const navigate = useNavigate();
 
   const currentPageInfo = PAGE_CONTEXT[location.pathname] || {
     label: 'Farm',
@@ -127,15 +226,15 @@ const GlobalChatbot = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   /* ── Load voices ── */
   useEffect(() => {
-    const loadVoices = () => speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+    const loadVoices = () => speechSynthRef?.getVoices();
+    if (speechSynthRef) {
+      speechSynthRef.onvoiceschanged = loadVoices;
+      loadVoices();
+    }
   }, []);
 
   /* ── Speech recognition ── */
@@ -146,9 +245,8 @@ const GlobalChatbot = () => {
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
       recognitionRef.current.lang = 'en-US';
-
-      recognitionRef.current.onresult = (event) => {
-        setInputMessage(event.results[0][0].transcript);
+      recognitionRef.current.onresult = (e) => {
+        setInputMessage(e.results[0][0].transcript);
         setIsListening(false);
       };
       recognitionRef.current.onerror = () => setIsListening(false);
@@ -162,40 +260,31 @@ const GlobalChatbot = () => {
     if (!token) return { summary: { totalAnimals: 0, totalPlants: 0, note: 'not-authenticated' } };
 
     setIsDataLoading(true);
-
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Resolve farmId
+      // Resolve farmId without using it in the URL — fetch per user
       let farmId = localStorage.getItem('farmId');
       if (!farmId) {
         try {
           const userRes = await axios.get(`${API_BASE}/auth/user`, { headers });
-          const userId =
-            userRes.data.id || userRes.data.userId || userRes.data._id || userRes.data.sub;
-          const farmRes = await axios.get(
-            `${API_BASE}/api/farms/user/${encodeURIComponent(userId)}`,
-            { headers }
-          );
-          farmId =
-            farmRes.data?.id || farmRes.data?._id || farmRes.data?.farmId;
+          const userId = userRes.data.id || userRes.data.userId || userRes.data._id || userRes.data.sub;
+          const farmRes = await axios.get(`${API_BASE}/api/farms/user/${encodeURIComponent(userId)}`, { headers });
+          farmId = farmRes.data?.id || farmRes.data?._id || farmRes.data?.farmId;
           if (farmId) localStorage.setItem('farmId', farmId);
-        } catch {
-          /* ignore */
-        }
+        } catch { /* ignore */ }
       }
 
       if (!farmId) {
+        setIsDataLoading(false);
         return { summary: { totalAnimals: 0, totalPlants: 0, note: 'no-farm' } };
       }
 
       const farmBase = `${API_BASE}/api/farms/${farmId}`;
 
-      // Fetch all data in parallel
       const results = await Promise.all([
         axios.get(`${farmBase}/animals`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${farmBase}/plants`, { headers }).catch(() => ({ data: [] })),
-        // ✅ FIX: Use global notification endpoint
         axios.get(NOTIFICATION_API, { headers }).catch(() => ({ data: [] })),
         axios.get(`${farmBase}/tank-level`, { headers }).catch(() => ({ data: null })),
         axios.get(`${farmBase}/cow-tank-level`, { headers }).catch(() => ({ data: null })),
@@ -204,19 +293,13 @@ const GlobalChatbot = () => {
         axios.get(`${farmBase}/sheep-tank-level`, { headers }).catch(() => ({ data: null })),
       ]);
 
-      const [animalsRes, plantsRes, notifRes, waterRes, cowRes, dogRes, chickenRes, sheepRes] =
-        results;
+      const [animalsRes, plantsRes, notifRes, waterRes, cowRes, dogRes, chickenRes, sheepRes] = results;
 
-      const animals = Array.isArray(animalsRes.data)
-        ? animalsRes.data
-        : animalsRes.data?.animals || [];
-      const plants = Array.isArray(plantsRes.data)
-        ? plantsRes.data
-        : plantsRes.data?.plants || [];
-      const notifications = notifRes.data || [];
+      const animals = Array.isArray(animalsRes.data) ? animalsRes.data : animalsRes.data?.animals || [];
+      const plants = Array.isArray(plantsRes.data) ? plantsRes.data : plantsRes.data?.plants || [];
+      const notifications = Array.isArray(notifRes.data) ? notifRes.data : [];
       const waterLevel = Number(waterRes.data?.level ?? 0);
 
-      // Food sources
       const foodSources = {};
       let totalFood = 0;
       [
@@ -226,39 +309,28 @@ const GlobalChatbot = () => {
         { key: 'sheep', data: sheepRes.data },
       ].forEach(({ key, data }) => {
         const level = Number(data?.level ?? 0);
-        if (level > 0) {
-          foodSources[`${key}Food`] = level;
-          totalFood += level;
-        }
+        if (level > 0) { foodSources[`${key}Food`] = level; totalFood += level; }
       });
 
-      // Animal breakdown
       const animalBreakdown = {};
       animals.forEach((a) => {
-        const species = a.species || 'Unknown';
-        animalBreakdown[species] = (animalBreakdown[species] || 0) + 1;
+        const s = a.species || 'Unknown';
+        animalBreakdown[s] = (animalBreakdown[s] || 0) + 1;
       });
 
-      // Plant breakdown
       const plantBreakdown = {};
       plants.forEach((p) => {
-        const type = p.type || p.species || 'Unknown';
-        plantBreakdown[type] = (plantBreakdown[type] || 0) + 1;
+        const t = p.type || p.species || 'Unknown';
+        plantBreakdown[t] = (plantBreakdown[t] || 0) + 1;
       });
 
-      // Health stats
-      const animalHealth = {
-        healthy: animals.filter((a) => (a.healthStatus || '').toLowerCase() === 'healthy').length,
-        warning: animals.filter((a) => (a.healthStatus || '').toLowerCase() === 'warning').length,
-        sick: animals.filter((a) => (a.healthStatus || '').toLowerCase() === 'sick').length,
-      };
-      const plantHealth = {
-        healthy: plants.filter((p) => (p.healthStatus || '').toLowerCase() === 'healthy').length,
-        warning: plants.filter((p) => (p.healthStatus || '').toLowerCase() === 'warning').length,
-        sick: plants.filter((p) => (p.healthStatus || '').toLowerCase() === 'sick').length,
-      };
+      const health = (arr) => ({
+        healthy: arr.filter((x) => (x.healthStatus || '').toLowerCase() === 'healthy').length,
+        warning: arr.filter((x) => (x.healthStatus || '').toLowerCase() === 'warning').length,
+        sick: arr.filter((x) => (x.healthStatus || '').toLowerCase() === 'sick').length,
+      });
 
-      const comprehensiveData = {
+      const data = {
         animals,
         plants,
         notifications,
@@ -272,143 +344,146 @@ const GlobalChatbot = () => {
           waterLevel,
           animalBreakdown,
           plantBreakdown,
-          animalHealth,
-          plantHealth,
+          animalHealth: health(animals),
+          plantHealth: health(plants),
           foodSources,
-          farmId,
           currentPage: location.pathname,
           timestamp: new Date().toISOString(),
-          dataSource: 'farm-specific',
         },
       };
 
       setLastDataFetch(new Date());
       setIsDataLoading(false);
-      return comprehensiveData;
-    } catch (error) {
-      console.error('Error fetching farm data:', error);
+      return data;
+    } catch (err) {
+      console.error('fetchFarmData error:', err);
       setIsDataLoading(false);
-      return {
-        summary: {
-          totalAnimals: 0,
-          totalPlants: 0,
-          error: error.message,
-          timestamp: new Date().toISOString(),
-        },
-      };
+      return { summary: { totalAnimals: 0, totalPlants: 0, error: err.message } };
     }
   }, [location.pathname]);
 
   /* ── Auto-fetch on open / page change ── */
   useEffect(() => {
-    if (isOpen) {
-      fetchFarmData().then(setFarmData);
-    }
+    if (isOpen) fetchFarmData().then(setFarmData);
   }, [isOpen, location.pathname, fetchFarmData]);
 
-  /* ═══════════════════ BUILD CONTEXT PROMPT ═══════════════════ */
-  const generateContextualResponse = useCallback(
-    (question) => {
-      const summary = farmData.summary || {};
+  /* ═══════════════════ BUILD SYSTEM PROMPT WITH RAG ═══════════════════ */
+  const buildSystemPrompt = useCallback((data) => {
+    const s = data?.summary || {};
+    const animals = data?.animals || [];
+    const plants = data?.plants || [];
+    const notifications = data?.notifications || [];
 
-      let farmStatus = `REAL-TIME FARM DATA:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    let farmContext = `=== LIVE FARM DATA (RAG CONTEXT) ===
 
 📊 OVERVIEW:
-• Animals: ${summary.totalAnimals || 0}
-• Plants: ${summary.totalPlants || 0}
-• Alerts: ${summary.totalAlerts || 0}
-• Water: ${summary.waterLevel || 0} L
-• Food: ${summary.totalFood || 0} kg`;
+- Total Animals: ${s.totalAnimals ?? 0}
+- Total Plants: ${s.totalPlants ?? 0}
+- Active Alerts: ${s.totalAlerts ?? 0}
+- Water Level: ${s.waterLevel ?? 0} L
+- Total Food Stock: ${s.totalFood ?? 0} kg
+- Current App Page: ${s.currentPage || 'unknown'}
+- Data Timestamp: ${s.timestamp || new Date().toISOString()}`;
 
-      // Animal breakdown
-      if (summary.animalBreakdown && Object.keys(summary.animalBreakdown).length > 0) {
-        farmStatus += '\n\n🐾 ANIMAL BREAKDOWN:';
-        Object.entries(summary.animalBreakdown).forEach(([species, count]) => {
-          farmStatus += `\n• ${species}: ${count}`;
-        });
-      }
+    if (Object.keys(s.animalBreakdown || {}).length > 0) {
+      farmContext += '\n\n🐾 ANIMAL SPECIES BREAKDOWN:\n';
+      Object.entries(s.animalBreakdown).forEach(([sp, cnt]) => {
+        farmContext += `- ${sp}: ${cnt}\n`;
+      });
+    }
 
-      // Animal health
-      if (summary.animalHealth) {
-        farmStatus += `\n\n🏥 ANIMAL HEALTH:
-• Healthy: ${summary.animalHealth.healthy}
-• Warning: ${summary.animalHealth.warning}
-• Sick: ${summary.animalHealth.sick}`;
-      }
+    if (s.animalHealth) {
+      farmContext += `\n🏥 ANIMAL HEALTH:\n- Healthy: ${s.animalHealth.healthy}\n- Warning: ${s.animalHealth.warning}\n- Sick: ${s.animalHealth.sick}`;
+    }
 
-      // Individual animals (top 10)
-      if (farmData.animals && farmData.animals.length > 0) {
-        farmStatus += '\n\nINDIVIDUAL ANIMALS:';
-        farmData.animals.slice(0, 10).forEach((a, i) => {
-          farmStatus += `\n${i + 1}. ${a.name || 'Unnamed'} - ${a.species || '?'} - Health: ${a.healthStatus || '?'}${a.weight ? ` - ${a.weight}kg` : ''}`;
-        });
-        if (farmData.animals.length > 10)
-          farmStatus += `\n... and ${farmData.animals.length - 10} more`;
-      }
+    if (animals.length > 0) {
+      farmContext += '\n\n📋 INDIVIDUAL ANIMALS:\n';
+      animals.slice(0, 15).forEach((a, i) => {
+        farmContext += `${i + 1}. Name: ${a.name || 'Unnamed'} | Species: ${a.species || '?'} | Health: ${a.healthStatus || '?'}${a.weight ? ` | Weight: ${a.weight}kg` : ''}${a.age ? ` | Age: ${a.age}` : ''}\n`;
+      });
+    }
 
-      // Plant breakdown
-      if (summary.plantBreakdown && Object.keys(summary.plantBreakdown).length > 0) {
-        farmStatus += '\n\n🌿 PLANT BREAKDOWN:';
-        Object.entries(summary.plantBreakdown).forEach(([type, count]) => {
-          farmStatus += `\n• ${type}: ${count}`;
-        });
-      }
+    if (Object.keys(s.plantBreakdown || {}).length > 0) {
+      farmContext += '\n\n🌿 PLANT TYPE BREAKDOWN:\n';
+      Object.entries(s.plantBreakdown).forEach(([t, cnt]) => {
+        farmContext += `- ${t}: ${cnt}\n`;
+      });
+    }
 
-      // Plant health
-      if (summary.plantHealth) {
-        farmStatus += `\n\n🌱 PLANT HEALTH:
-• Healthy: ${summary.plantHealth.healthy}
-• Warning: ${summary.plantHealth.warning}
-• Sick: ${summary.plantHealth.sick}`;
-      }
+    if (s.plantHealth) {
+      farmContext += `\n🌱 PLANT HEALTH:\n- Healthy: ${s.plantHealth.healthy}\n- Warning: ${s.plantHealth.warning}\n- Sick: ${s.plantHealth.sick}`;
+    }
 
-      // Individual plants (top 10)
-      if (farmData.plants && farmData.plants.length > 0) {
-        farmStatus += '\n\nINDIVIDUAL PLANTS:';
-        farmData.plants.slice(0, 10).forEach((p, i) => {
-          farmStatus += `\n${i + 1}. ${p.name || 'Unnamed'} - ${p.type || p.species || '?'} - Health: ${p.healthStatus || '?'}`;
-        });
-        if (farmData.plants.length > 10)
-          farmStatus += `\n... and ${farmData.plants.length - 10} more`;
-      }
+    if (plants.length > 0) {
+      farmContext += '\n\n📋 INDIVIDUAL PLANTS:\n';
+      plants.slice(0, 15).forEach((p, i) => {
+        farmContext += `${i + 1}. Name: ${p.name || 'Unnamed'} | Type: ${p.type || p.species || '?'} | Health: ${p.healthStatus || '?'}\n`;
+      });
+    }
 
-      // Food sources
-      if (summary.foodSources && Object.keys(summary.foodSources).length > 0) {
-        farmStatus += '\n\n🍽️ FOOD BY TYPE:';
-        Object.entries(summary.foodSources).forEach(([source, amount]) => {
-          const label = source.replace('Food', '').charAt(0).toUpperCase() + source.replace('Food', '').slice(1);
-          farmStatus += `\n• ${label}: ${amount} kg`;
-        });
-      }
+    if (Object.keys(s.foodSources || {}).length > 0) {
+      farmContext += '\n\n🍽️ FOOD STOCK BY ANIMAL TYPE:\n';
+      Object.entries(s.foodSources).forEach(([src, amt]) => {
+        const label = src.replace('Food', '');
+        farmContext += `- ${label.charAt(0).toUpperCase() + label.slice(1)}: ${amt} kg\n`;
+      });
+    }
 
-      // Recent alerts
-      if (farmData.notifications && farmData.notifications.length > 0) {
-        farmStatus += '\n\n🔔 RECENT ALERTS:';
-        farmData.notifications.slice(0, 5).forEach((n, i) => {
-          farmStatus += `\n${i + 1}. ${n.title || n.type || 'Alert'}: ${n.message || ''}`;
-        });
-      }
+    if (notifications.length > 0) {
+      farmContext += '\n\n🔔 RECENT ALERTS (latest 5):\n';
+      notifications.slice(0, 5).forEach((n, i) => {
+        farmContext += `${i + 1}. [${n.type || n.severity || 'Alert'}] ${n.title || ''}: ${n.message || ''}\n`;
+      });
+    }
 
-      farmStatus += `\n\n📍 Current Page: ${currentPageInfo.label}
-⏰ Updated: ${summary.timestamp ? new Date(summary.timestamp).toLocaleString() : 'now'}`;
+    farmContext += `\n=== END OF FARM DATA ===`;
 
-      return `You are an expert farm management AI assistant with access to REAL, LIVE farm data.
+    return `You are **Farmy**, a friendly, witty, and knowledgeable AI farm assistant with a warm personality — like a smart farmhand who knows everything about the farm and talks like a real person.
 
-${farmStatus}
+${farmContext}
 
-User's Question: "${question}"
+YOUR PERSONALITY:
+- Warm, friendly, and conversational — like talking to a helpful friend
+- Use emojis naturally (not excessively)
+- Give direct, accurate answers based on the data above
+- If data shows 0 or is missing, be honest: "Looks like no data is available for that"
+- Add helpful farm tips when relevant
+- Never invent numbers — always use exact values from the data above
+- When asked to navigate/go somewhere, say you're taking the user there (the app will handle the actual navigation)
+- Keep responses concise but complete (max 3-4 short paragraphs)
 
-RULES:
-1. Use EXACT numbers from the data — never invent data
-2. Reference actual animal/plant names when available
-3. If data is missing, say "No data available" — don't guess
-4. Be conversational, helpful, and concise
-5. Use emojis to make responses friendly
-6. Provide actionable advice when relevant`;
-    },
-    [farmData, currentPageInfo]
-  );
+IMPORTANT RULES:
+1. Use ONLY the numbers from the farm data above — never hallucinate counts
+2. Refer to animals and plants by their actual names when available
+3. Be conversational, not robotic
+4. If asked "how many plants/animals" — give the exact count from the data
+5. Do NOT expose farm IDs, internal IDs, or technical details to the user`;
+  }, []);
+
+  /* ═══════════════════ ADD BOT MESSAGE ═══════════════════ */
+  const addBotMessage = useCallback((text, extra = {}) => {
+    const msg = { id: Date.now() + 1, text, isBot: true, timestamp: new Date(), ...extra };
+    setMessages((prev) => [...prev, msg]);
+
+    if (voiceEnabled && 'speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(
+        text.replace(/[*_#`]/g, '').replace(/\n/g, '. ')
+      );
+      const voices = speechSynthRef?.getVoices() || [];
+      const preferred =
+        voices.find((v) => v.lang.startsWith('en') && /female|woman|zira|hazel|susan|samantha/i.test(v.name)) ||
+        voices.find((v) => v.lang.startsWith('en'));
+      if (preferred) utterance.voice = preferred;
+      utterance.rate = 0.9;
+      utterance.pitch = 1.1;
+      utterance.volume = 0.8;
+      speechSynthRef?.speak(utterance);
+      setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+    }
+
+    if (isMinimized) setUnreadCount((prev) => prev + 1);
+  }, [voiceEnabled, isMinimized]);
 
   /* ═══════════════════ SEND MESSAGE ═══════════════════ */
   const sendMessage = useCallback(async () => {
@@ -420,7 +495,6 @@ RULES:
       isBot: false,
       timestamp: new Date(),
     };
-
     setMessages((prev) => [...prev, userMsg]);
     const question = inputMessage;
     setInputMessage('');
@@ -428,149 +502,118 @@ RULES:
     setShowQuickPrompts(false);
 
     try {
-      // Refresh farm data before answering
+      // ── 1. Check navigation intent FIRST ──
+      const navIntent = detectNavigationIntent(question);
+      if (navIntent) {
+        const pageLabel = navIntent.label.charAt(0).toUpperCase() + navIntent.label.slice(1);
+        const pageEmoji = PAGE_CONTEXT[navIntent.route]?.emoji || '📍';
+        addBotMessage(
+          `${pageEmoji} Sure! Taking you to the **${pageLabel}** page right now! 🚀\n\nI'll be right here if you need anything else! 😊`
+        );
+        // Small delay so user sees the message, then navigate
+        setTimeout(() => navigate(navIntent.route), 900);
+        setIsLoading(false);
+        return;
+      }
+
+      // ── 2. Fetch latest farm data ──
       const latestData = await fetchFarmData();
       setFarmData(latestData);
 
+      const animals = latestData?.animals || [];
+      const plants = latestData?.plants || [];
       const q = question.trim().toLowerCase();
-      const animalsCount = Array.isArray(latestData?.animals) ? latestData.animals.length : 0;
-      const plantsCount = Array.isArray(latestData?.plants) ? latestData.plants.length : 0;
-      const farmId = latestData?.summary?.farmId || localStorage.getItem('farmId') || 'unknown';
 
-      // ── Deterministic answers for count questions (skip LLM) ──
-      const isAnimalCount =
-        (q.includes('how many') && /animal|pet|livestock/i.test(q)) ||
-        q === 'animals' ||
-        q === 'animal count';
-      const isPlantCount =
-        (q.includes('how many') && /plant|crop|vegetation/i.test(q)) ||
-        q === 'plants' ||
-        q === 'plant count';
-      const isBothCount =
-        q.includes('how many') && /animal/i.test(q) && /plant/i.test(q);
+      // ── 3. Deterministic shortcut answers (no LLM needed) ──
+      const isAnimalCount = /how many animal|count.*animal|animal.*count|number of animal/i.test(q) || q === 'animals';
+      const isPlantCount = /how many plant|count.*plant|plant.*count|number of plant/i.test(q) || q === 'plants';
+      const isBothCount = isAnimalCount && isPlantCount;
 
       if (isBothCount) {
-        const text = `📊 According to your live farm data:\n\n🐾 **Animals:** ${animalsCount}\n🌿 **Plants:** ${plantsCount}\n\n_Farm ID: ${farmId}_`;
-        addBotMessage(text);
+        addBotMessage(
+          `📊 Here's your live farm count:\n\n🐾 **Animals:** ${animals.length}\n🌿 **Plants:** ${plants.length}\n\nWant details on any of them?`
+        );
+        setIsLoading(false);
         return;
       }
-      if (isAnimalCount) {
-        const text = `🐾 You have **${animalsCount} animals** in your farm.\n\n_Farm ID: ${farmId}_`;
-        addBotMessage(text);
+      if (isAnimalCount && !isPlantCount) {
+        const breakdown = latestData?.summary?.animalBreakdown || {};
+        let detail = '';
+        if (Object.keys(breakdown).length > 0) {
+          detail = '\n\n' + Object.entries(breakdown).map(([s, c]) => `• ${s}: ${c}`).join('\n');
+        }
+        addBotMessage(`🐾 You have **${animals.length} animal${animals.length !== 1 ? 's' : ''}** on your farm!${detail}`);
+        setIsLoading(false);
         return;
       }
-      if (isPlantCount) {
-        const text = `🌿 You have **${plantsCount} plants** in your farm.\n\n_Farm ID: ${farmId}_`;
-        addBotMessage(text);
+      if (isPlantCount && !isAnimalCount) {
+        const breakdown = latestData?.summary?.plantBreakdown || {};
+        let detail = '';
+        if (Object.keys(breakdown).length > 0) {
+          detail = '\n\n' + Object.entries(breakdown).map(([t, c]) => `• ${t}: ${c}`).join('\n');
+        }
+        addBotMessage(`🌿 You have **${plants.length} plant${plants.length !== 1 ? 's' : ''}** on your farm!${detail}`);
+        setIsLoading(false);
         return;
       }
 
-      // ── Call Groq LLM for complex questions ──
-      const contextPrompt = generateContextualResponse(question);
+      // ── 4. Full RAG + LLM response ──
+      const systemPrompt = buildSystemPrompt(latestData);
 
       const completion = await groq.chat.completions.create({
         messages: [
-          {
-            role: 'system',
-            content:
-              'You are a comprehensive farm management AI assistant. You have access to complete real-time farm data. Provide helpful, accurate, conversational responses. Use emojis. Be concise but thorough.',
-          },
-          { role: 'user', content: contextPrompt },
+          { role: 'system', content: systemPrompt },
+          // Include last 6 messages as conversation history for context
+          ...messages.slice(-6).map((m) => ({
+            role: m.isBot ? 'assistant' : 'user',
+            content: m.text,
+          })),
+          { role: 'user', content: question },
         ],
-        // ✅ CORRECT MODEL — llama-3.1-8b-instant (fast chat model)
         model: GROQ_MODEL,
-        temperature: 0.7,
-        max_tokens: 600,
+        temperature: 0.65,
+        max_tokens: 500,
       });
 
       const responseText =
         completion.choices[0]?.message?.content ||
-        "I'm having trouble processing that. Could you rephrase?";
+        "Hmm, I had a little trouble with that. Could you try rephrasing? 🤔";
 
       addBotMessage(responseText);
     } catch (error) {
-      console.error('Error sending message:', error);
-
-      let errorText = "Sorry, I'm experiencing technical difficulties. Please try again.";
-      if (error?.message?.includes('decommissioned') || error?.status === 400) {
-        errorText =
-          '⚠️ The AI model is currently unavailable. The system will retry with a backup model.';
-      }
-
-      addBotMessage(errorText);
+      console.error('Chatbot error:', error);
+      addBotMessage(
+        "Sorry, I hit a snag! 😅 Check your Groq API key or internet connection and try again."
+      );
     } finally {
       setIsLoading(false);
     }
-  }, [inputMessage, isLoading, fetchFarmData, generateContextualResponse]);
+  }, [inputMessage, isLoading, fetchFarmData, buildSystemPrompt, addBotMessage, navigate, messages]);
 
-  /* ── Helper: add bot message + optional TTS ── */
-  const addBotMessage = useCallback(
-    (text) => {
-      const msg = { id: Date.now() + 1, text, isBot: true, timestamp: new Date() };
-      setMessages((prev) => [...prev, msg]);
-
-      if (voiceEnabled && 'speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(
-          text.replace(/[*_#`]/g, '').replace(/\n/g, '. ')
-        );
-        const voices = speechSynthesis.getVoices();
-        const preferred = voices.find(
-          (v) =>
-            v.lang.startsWith('en') &&
-            /female|woman|zira|hazel|susan|samantha/i.test(v.name)
-        ) || voices.find((v) => v.lang.startsWith('en'));
-        if (preferred) utterance.voice = preferred;
-        utterance.rate = 0.9;
-        utterance.pitch = 1.1;
-        utterance.volume = 0.8;
-        speechSynthesis.speak(utterance);
-        setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-      }
-
-      if (isMinimized) setUnreadCount((prev) => prev + 1);
-    },
-    [voiceEnabled, isMinimized]
-  );
-
-  /* ── Key press handler ── */
+  /* ── Key press ── */
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   };
 
   /* ── Voice controls ── */
   const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      setIsListening(true);
-      recognitionRef.current.start();
-    }
+    if (recognitionRef.current && !isListening) { setIsListening(true); recognitionRef.current.start(); }
   };
   const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
+    if (recognitionRef.current && isListening) { recognitionRef.current.stop(); setIsListening(false); }
   };
   const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
+    if ('speechSynthesis' in window) { speechSynthRef?.cancel(); setIsSpeaking(false); }
   };
 
   /* ── Clear chat ── */
   const clearConversation = () => {
-    setMessages([
-      {
-        id: Date.now(),
-        text: "🔄 Chat cleared! I'm ready with fresh data. Ask me anything about your farm!",
-        isBot: true,
-        timestamp: new Date(),
-      },
-    ]);
+    setMessages([{
+      id: Date.now(),
+      text: "🔄 Fresh start! I'm Farmy and I'm ready to help. What do you need? 🌱",
+      isBot: true,
+      timestamp: new Date(),
+    }]);
     setUnreadCount(0);
     setShowQuickPrompts(true);
     fetchFarmData().then(setFarmData);
@@ -595,12 +638,11 @@ RULES:
   const hiddenPages = ['/login', '/register', '/reset-password'];
   if (hiddenPages.includes(location.pathname)) return null;
 
-  /* ── Data summary for header ── */
   const summary = farmData.summary || {};
   const dataStats = [
-    { icon: <FaPaw className="text-[8px]" />, value: summary.totalAnimals || 0 },
-    { icon: <FaLeaf className="text-[8px]" />, value: summary.totalPlants || 0 },
-    { icon: <FaBell className="text-[8px]" />, value: summary.totalAlerts || 0 },
+    { icon: <FaPaw className="text-[8px]" />, value: summary.totalAnimals ?? 0 },
+    { icon: <FaLeaf className="text-[8px]" />, value: summary.totalPlants ?? 0 },
+    { icon: <FaBell className="text-[8px]" />, value: summary.totalAlerts ?? 0 },
   ];
 
   /* ═══════════════════ RENDER ═══════════════════ */
@@ -624,21 +666,16 @@ RULES:
               whileTap={{ scale: 0.9 }}
             >
               <FaRobot size={24} />
-
-              {/* Unread badge */}
               {unreadCount > 0 && (
                 <motion.span
                   className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold
                              rounded-full w-6 h-6 flex items-center justify-center shadow-lg ring-2 ring-white"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 500 }}
                 >
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </motion.span>
               )}
-
-              {/* Pulse ring */}
               <motion.div
                 className="absolute inset-0 rounded-2xl bg-green-400"
                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
@@ -675,7 +712,7 @@ RULES:
                                   border-2 border-white shadow-sm" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-bold text-sm truncate">Farm AI Assistant</h3>
+                  <h3 className="font-bold text-sm truncate">Farmy — Farm AI</h3>
                   <div className="flex items-center gap-2 text-[10px] text-green-100">
                     {isDataLoading ? (
                       <span className="flex items-center gap-1">
@@ -685,9 +722,7 @@ RULES:
                       <span className="flex items-center gap-1">
                         <FiWifi size={8} /> {formatRelativeTime(lastDataFetch)}
                       </span>
-                    ) : (
-                      'Connecting…'
-                    )}
+                    ) : 'Connecting…'}
                     <span className="w-0.5 h-0.5 rounded-full bg-green-200" />
                     <span className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded">
                       {currentPageInfo.emoji} {currentPageInfo.label}
@@ -697,56 +732,40 @@ RULES:
               </div>
 
               <div className="flex items-center gap-1 shrink-0">
-                {/* Data stats pills (visible when not minimized) */}
                 {!isMinimized && (
                   <div className="hidden sm:flex items-center gap-1 mr-1">
                     {dataStats.map((s, i) => (
-                      <span
-                        key={i}
-                        className="flex items-center gap-1 text-[9px] bg-white/10 px-1.5 py-0.5
-                                   rounded font-bold"
-                      >
+                      <span key={i} className="flex items-center gap-1 text-[9px] bg-white/10 px-1.5 py-0.5 rounded font-bold">
                         {s.icon} {s.value}
                       </span>
                     ))}
                   </div>
                 )}
-
-                <button
-                  onClick={() => setVoiceEnabled(!voiceEnabled)}
+                <button onClick={() => setVoiceEnabled(!voiceEnabled)}
                   className="p-1.5 hover:bg-white/15 rounded-lg transition"
-                  title={voiceEnabled ? 'Disable voice' : 'Enable voice'}
-                >
+                  title={voiceEnabled ? 'Disable voice' : 'Enable voice'}>
                   {voiceEnabled ? <FiVolume2 size={14} /> : <FiVolumeX size={14} />}
                 </button>
-                <button
-                  onClick={() => fetchFarmData().then(setFarmData)}
-                  className="p-1.5 hover:bg-white/15 rounded-lg transition"
-                  title="Refresh data"
-                >
+                <button onClick={() => fetchFarmData().then(setFarmData)}
+                  className="p-1.5 hover:bg-white/15 rounded-lg transition" title="Refresh data">
                   <FiRefreshCw size={14} className={isDataLoading ? 'animate-spin' : ''} />
                 </button>
-                <button
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="p-1.5 hover:bg-white/15 rounded-lg transition"
-                >
+                <button onClick={() => setIsMinimized(!isMinimized)}
+                  className="p-1.5 hover:bg-white/15 rounded-lg transition">
                   {isMinimized ? <FiMaximize2 size={14} /> : <FiMinimize2 size={14} />}
                 </button>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 hover:bg-white/15 rounded-lg transition"
-                >
+                <button onClick={() => setIsOpen(false)}
+                  className="p-1.5 hover:bg-white/15 rounded-lg transition">
                   <FiX size={14} />
                 </button>
               </div>
             </div>
 
-            {/* ── Chat body (hidden when minimized) ── */}
+            {/* ── Chat body ── */}
             {!isMinimized && (
               <>
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white
-                                custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white custom-scrollbar">
                   {messages.map((msg) => (
                     <motion.div
                       key={msg.id}
@@ -755,50 +774,45 @@ RULES:
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.25 }}
                     >
-                      <div
-                        className={`flex items-start gap-2 max-w-[85%] ${
-                          msg.isBot ? 'flex-row' : 'flex-row-reverse'
-                        }`}
-                      >
+                      <div className={`flex items-start gap-2 max-w-[85%] ${msg.isBot ? 'flex-row' : 'flex-row-reverse'}`}>
                         {/* Avatar */}
-                        <div
-                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
-                            msg.isBot
-                              ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
-                              : 'bg-gray-200 text-gray-600'
-                          }`}
-                        >
-                          {msg.isBot ? <FiCpu size={12} /> : <FiUser size={12} />}
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${
+                          msg.isBot
+                            ? 'bg-gradient-to-br from-green-500 to-emerald-600 text-white'
+                            : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          {msg.isBot ? <FaRobot size={11} /> : <FiUser size={12} />}
                         </div>
 
                         {/* Bubble */}
                         <div className="group relative">
-                          <div
-                            className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
-                              msg.isBot
-                                ? 'bg-white text-gray-800 border border-gray-100'
-                                : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
-                            }`}
-                          >
-                            <p className="whitespace-pre-wrap">{msg.text}</p>
-                            <div
-                              className={`flex items-center justify-between mt-1.5 text-[10px] ${
-                                msg.isBot ? 'text-gray-400' : 'text-green-200'
-                              }`}
-                            >
+                          <div className={`rounded-2xl px-4 py-2.5 shadow-sm text-sm leading-relaxed ${
+                            msg.isBot
+                              ? 'bg-white text-gray-800 border border-gray-100'
+                              : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                          }`}>
+                            {/* Render bold markdown */}
+                            <p className="whitespace-pre-wrap" dangerouslySetInnerHTML={{
+                              __html: msg.text
+                                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                            }} />
+                            <div className={`flex items-center justify-between mt-1.5 text-[10px] ${
+                              msg.isBot ? 'text-gray-400' : 'text-green-200'
+                            }`}>
                               <span className="flex items-center gap-1">
                                 <FiClock size={8} />
                                 {formatTimestamp(msg.timestamp)}
                               </span>
                               {msg.isBot && (
                                 <span className="flex items-center gap-1 text-green-500">
-                                  <FiZap size={8} /> {GROQ_MODEL.split('-').slice(0, 2).join('-')}
+                                  <FiZap size={8} /> Farmy
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          {/* Copy button (bot messages only) */}
+                          {/* Copy button */}
                           {msg.isBot && (
                             <button
                               onClick={() => copyMessage(msg.id, msg.text)}
@@ -807,11 +821,7 @@ RULES:
                                          text-gray-400 hover:text-green-600 transition-all text-[10px]"
                               title="Copy"
                             >
-                              {copiedId === msg.id ? (
-                                <FiCheck size={10} className="text-green-500" />
-                              ) : (
-                                <FiCopy size={10} />
-                              )}
+                              {copiedId === msg.id ? <FiCheck size={10} className="text-green-500" /> : <FiCopy size={10} />}
                             </button>
                           )}
                         </div>
@@ -821,33 +831,20 @@ RULES:
 
                   {/* Loading dots */}
                   {isLoading && (
-                    <motion.div
-                      className="flex justify-start"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
+                    <motion.div className="flex justify-start" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600
-                                        flex items-center justify-center text-white shadow-sm">
-                          <FiCpu size={12} />
+                        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white shadow-sm">
+                          <FaRobot size={11} />
                         </div>
-                        <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100
-                                        flex items-center gap-2">
+                        <div className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100 flex items-center gap-2">
                           <div className="flex gap-1">
                             {[0, 1, 2].map((i) => (
-                              <motion.div
-                                key={i}
-                                className="w-1.5 h-1.5 bg-green-500 rounded-full"
+                              <motion.div key={i} className="w-1.5 h-1.5 bg-green-500 rounded-full"
                                 animate={{ y: [0, -6, 0] }}
-                                transition={{
-                                  duration: 0.6,
-                                  repeat: Infinity,
-                                  delay: i * 0.15,
-                                }}
-                              />
+                                transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }} />
                             ))}
                           </div>
-                          <span className="text-xs text-gray-400">Thinking…</span>
+                          <span className="text-xs text-gray-400">Farmy is thinking…</span>
                         </div>
                       </div>
                     </motion.div>
@@ -900,74 +897,53 @@ RULES:
                         value={inputMessage}
                         onChange={(e) => setInputMessage(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        placeholder="Ask about your farm…"
+                        placeholder="Ask Farmy or say 'go to feeding'…"
                         className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm
                                    focus:outline-none focus:ring-2 focus:ring-green-200 focus:border-green-300
                                    transition-all bg-gray-50 focus:bg-white"
                         disabled={isLoading}
                       />
                       {isListening && (
-                        <motion.div
-                          className="absolute right-3 top-1/2 -translate-y-1/2"
+                        <motion.div className="absolute right-3 top-1/2 -translate-y-1/2"
                           animate={{ scale: [1, 1.4, 1] }}
-                          transition={{ duration: 0.8, repeat: Infinity }}
-                        >
+                          transition={{ duration: 0.8, repeat: Infinity }}>
                           <div className="w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-200" />
                         </motion.div>
                       )}
                     </div>
 
-                    {/* Voice button */}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.9 }}
+                    {/* Voice */}
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}
                       onClick={isListening ? stopListening : startListening}
                       className={`p-2.5 rounded-xl transition-all shadow-sm ${
-                        isListening
-                          ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-200'
-                          : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
-                      }`}
-                      title={isListening ? 'Stop listening' : 'Voice input'}
-                    >
+                        isListening ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-200' : 'bg-gray-100 hover:bg-gray-200 text-gray-500'
+                      }`}>
                       {isListening ? <FiMicOff size={16} /> : <FiMic size={16} />}
                     </motion.button>
 
                     {/* Stop speaking */}
                     {isSpeaking && (
-                      <motion.button
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        whileTap={{ scale: 0.9 }}
+                      <motion.button initial={{ scale: 0 }} animate={{ scale: 1 }} whileTap={{ scale: 0.9 }}
                         onClick={stopSpeaking}
-                        className="p-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl
-                                   shadow-sm shadow-orange-200"
-                        title="Stop speaking"
-                      >
+                        className="p-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm shadow-orange-200">
                         <FiVolumeX size={16} />
                       </motion.button>
                     )}
 
                     {/* Send */}
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.9 }}
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.9 }}
                       onClick={sendMessage}
                       disabled={!inputMessage.trim() || isLoading}
                       className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600
                                  hover:to-emerald-700 disabled:from-gray-200 disabled:to-gray-300
-                                 text-white p-2.5 rounded-xl transition-all shadow-md shadow-green-200/50
-                                 disabled:shadow-none"
-                    >
+                                 text-white p-2.5 rounded-xl transition-all shadow-md shadow-green-200/50 disabled:shadow-none">
                       <FiSend size={16} />
                     </motion.button>
                   </div>
 
-                  {/* Bottom bar */}
                   <div className="flex items-center justify-between mt-2 px-1">
-                    <button
-                      onClick={clearConversation}
-                      className="text-[10px] text-gray-400 hover:text-red-500 transition flex items-center gap-1"
-                    >
+                    <button onClick={clearConversation}
+                      className="text-[10px] text-gray-400 hover:text-red-500 transition flex items-center gap-1">
                       <FiTrash2 size={9} /> Clear
                     </button>
                     <div className="flex items-center gap-2 text-[9px] text-gray-400">
@@ -976,7 +952,9 @@ RULES:
                         Powered by Groq
                       </span>
                       <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
-                      <span>{GROQ_MODEL}</span>
+                      <span className="flex items-center gap-1">
+                        <FiNavigation size={7} className="text-blue-400" /> Nav-enabled
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -986,17 +964,11 @@ RULES:
         )}
       </AnimatePresence>
 
-      {/* Custom scrollbar */}
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #d1d5db;
-          border-radius: 99px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #9ca3af;
-        }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
       `}</style>
     </>
   );
